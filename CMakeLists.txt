@@ -1,11 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(back-key LANGUAGES C)
+project(simp-daemon LANGUAGES C)
 
-find_package(Threads REQUIRED)
-
-add_executable(back-key main.c)
+add_executable(simp-daemon main.c)
 
 set(CMAKE_CURRENT_BINARY_DIR ON)
-
-target_link_libraries(back-key Threads::Threads)
