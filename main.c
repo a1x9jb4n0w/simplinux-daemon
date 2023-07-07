@@ -65,7 +65,7 @@ int main()
 
             close( pfd[1] );
 
-            while ( wmsg == 3 || wmsg == 0 ) { sleep(60); }
+            while ( 1 ) { sleep(60); }
 
         }
 
