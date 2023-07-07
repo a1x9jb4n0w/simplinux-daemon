@@ -1,3 +1,3 @@
 # simplinux-daemon
 
-hangs as a daemon, doing nothing ( yet )
+hangs with a socket listenning on :31254
