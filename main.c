@@ -2,77 +2,95 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <string.h>
+
+struct addrinfo *res; int sockfd;
 
 void dbody()
 {
 
 }
 
+void sigthandler()
+{
+        close( sockfd ); freeaddrinfo( res );
+}
+
 int main()
 {
+    int pfd[2]; pid_t pid1, pid2;
 
-    int pfd[2]; pid_t fres, cres;
+    if ( pipe(pfd) == -1 ) { printf("pipe() error : exit\n"); exit(EXIT_FAILURE); }
 
-    if ( pipe(pfd) == -1 ) { printf("Pipe Failed : exit"); exit(EXIT_FAILURE); }
+    for ( int i = 0; i < _NSIG; i++ ) signal( i, SIG_DFL );
 
-    else { printf("-----\n"); fflush(stdout); }
+    pid1 = fork();
 
-    //for ( int i = 0; i < _NSIG; i++ ) signal( i, SIG_DFL );
-
-    fres = fork();
-
-    if ( !fres ) {
+    if ( !pid1 ) {
 
         close( pfd[0] );
 
-        int sid = setsid();
+        if ( setsid() == -1 ) { printf( "EPERM error : exit\n" ); fflush(stdout); exit(EXIT_FAILURE); }
 
-        if ( sid >= 0 ) { printf( "Child SID : %i\n", sid ); fflush(stdout); } else { printf( "EPERM Error : exit" ); exit(EXIT_FAILURE); }
+        pid2 = fork();
 
-        cres = fork();
-
-        if ( !cres ) {
+        if ( !pid2 ) {
 
             pid_t chpid = getpid(); char wmsg = 1;
 
-            printf("Second child PID : %i\n", chpid ); fflush(stdout);
+            printf("PID = %i : Ok\n", chpid ); fflush(stdout);
+
+            struct addrinfo hints, *res; int sockfd; unsigned char *hp = (unsigned char*)&hints;
+
+            for ( size_t n = 0; n <= sizeof hints; n++ ) hp[n] = 0;
+
+            hints.ai_family = AF_UNSPEC;
+            hints.ai_socktype = SOCK_STREAM;
+            hints.ai_flags = AI_PASSIVE;
+
+            if ( getaddrinfo( NULL, "31254", &hints, &res ) != 0 ) wmsg = 2;
+
+            else { sockfd = socket( res->ai_family, res->ai_socktype, res->ai_protocol );
+
+              if ( sockfd == -1 ||
+                   bind( sockfd, res->ai_addr, res->ai_addrlen ) == -1 ||
+                   listen( sockfd, 5 ) == -1 ) wmsg = 2; }
+
+            if ( signal( SIGTERM, sigthandler ) == SIG_ERR ) wmsg = 3;
 
             write( pfd[1], &wmsg, 1 );
 
             close( pfd[1] );
 
-            while ( 1 ) { sleep(60); }
+            while ( wmsg == 3 || wmsg == 0 ) { sleep(60); }
 
         }
 
-        else if ( cres > 0 ) { pid_t fcpid = getpid();
+        else if ( pid2 > 0 ) { close( pfd[1] ); exit(EXIT_SUCCESS); }
 
-            close( pfd[1] ); printf("First child PID : %i - exited\n", fcpid ); fflush(stdout);
+        else if ( pid2 == -1 ) { close( pfd[1] );
 
-            exit(EXIT_SUCCESS);
-
-        }
-
-        else if ( cres < 0 ) { printf("Second fork failed...\n"); fflush(stdout); exit(EXIT_FAILURE); }
+            printf("fork() #2 error : exit\n"); fflush(stdout); exit(EXIT_FAILURE); }
 
     }
 
-    else if ( fres > 0 ) { pid_t ppid = getpid();
-
-        printf( "Parent process PID : %i \n", ppid ); fflush(stdout);
-
-        close( pfd[1] );
-
-        char rmsg = 0;
+    else if ( pid1 > 0 ) { close( pfd[1] ); char rmsg = 0;
 
         while ( !rmsg ) { read( pfd[0], &rmsg, 1 ); }
 
         close( pfd[0] );
 
-        printf("Parent exited\n");
+        if ( rmsg == 1 ) printf("Socket : Ok\n"); fflush(stdout);
+        if ( rmsg == 2 ) printf("Socket error : exit\n"); fflush(stdout);
+        if ( rmsg == 3 ) printf("Socket : Ok\nSIGTERM handler error : well, Ok anyway...\n"); fflush(stdout);
     }
 
-    else if ( fres < 0 ) { printf("First fork failed...\n"); exit(EXIT_FAILURE); }
+    else if ( pid1 == -1 ) { close( pfd[1] ); close( pfd[0] );
+
+        printf("fork() #1 error : exit\n"); fflush(stdout); exit(EXIT_FAILURE); }
 
     exit(EXIT_SUCCESS);
 }
