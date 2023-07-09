@@ -13,4 +13,4 @@ Compilation :
     cd simplinux-daemon
     cmake ./
     make
-    ./simpld
+    ./sudo simpld
