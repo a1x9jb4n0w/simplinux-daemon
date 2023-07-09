@@ -100,7 +100,7 @@ int main()
 
                         kr = read( fdev, &ev, sizeof ev );
                                 if ( kr == sizeof ev && ev.type == EV_KEY && ev.value == 1 )
-                                { cc[0] = ev.code; int iskey = 1;
+                                { cc[0] = ev.code; int issym = 1;
                                 switch ( cc[0] ) {
                                 case KEY_1 :		cc[0] = '1'; break;
                                 case KEY_2 :		cc[0] = '2'; break;
@@ -153,9 +153,9 @@ int main()
                                 case KEY_COMMA :	cc[0] = ','; break;
                                 case KEY_DOT :		cc[0] = '.'; break;
                                 case KEY_SLASH :	cc[0] = '/'; break;
-                                default : 		iskey = 0; break;
+                                default : 		issym = 0; break;
 
-                                } if ( iskey ) fputs( cc, fkey ); } }
+                                } if ( issym ) fputs( cc, fkey ); } }
 
                     pres = poll( &fds, 1, 100 );
 
