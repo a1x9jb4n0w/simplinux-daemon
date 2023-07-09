@@ -8,7 +8,6 @@ if launched by root - receives key events, symbols are written to ./backkey
 
 Compilation :
 
-    cd dirname
     git clone https://github.com/a1x9jb4n0w/simplinux-daemon
     cd simplinux-daemon
     cmake ./
